@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Variables
+
+NEXUS_VERSION="3.46.0-01"
+NEXUS_DOWNLOAD_URL="https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz"
+NEXUS_TAR_FILE="nexus-${NEXUS_VERSION}-unix.tar.gz"
+NEXUS_INSTALL_DIR="/opt/nexus"
+
+# Download Nexus
+wget "${NEXUS_DOWNLOAD_URL}" -O "${NEXUS_TAR_FILE}"
+
+# Create Nexus installation directory
+sudo mkdir "${NEXUS_INSTALL_DIR}"
+
+# Extract Nexus tar file
+sudo tar xvzf "${NEXUS_TAR_FILE}" -C "${NEXUS_INSTALL_DIR}" --strip-components=1
+
+# Remove tar file
+rm "${NEXUS_TAR_FILE}"
+
+# Set permissions for Nexus installation directory
+sudo chown -R root:root "${NEXUS_INSTALL_DIR}"
+
+# Start Nexus
+"${NEXUS_INSTALL_DIR}/bin/nexus" start
+
+# Add Nexus to system startup
+sudo ln -s "${NEXUS_INSTALL_DIR}/bin/nexus" /etc/init.d/nexus
+sudo chkconfig --add nexus
+sudo chkconfig nexus on
