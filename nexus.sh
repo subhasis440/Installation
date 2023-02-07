@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# https://epma.medium.com/install-sonatype-nexus-3-on-ubuntu-20-04-lts-562f8ba20b98
+
+
 # Download the Nexus Repository Manager OSS distribution
 wget https://download.sonatype.com/nexus/3/latest-unix.tar.gz
 
