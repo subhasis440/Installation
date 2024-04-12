@@ -2,6 +2,8 @@ ALL WORKER AND MASTER NODE
 
 
 sudo apt-get update
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/' /etc/fstab
 sudo apt install docker.io -y
 sudo chmod 666 /var/run/docker.sock
 sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
