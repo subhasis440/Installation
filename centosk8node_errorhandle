@@ -1,0 +1,156 @@
+#!/bin/bash
+
+set -e  # Exit immediately if a command exits with a non-zero status
+
+# Function for error handling
+error_handler() {
+    echo "Error occurred in line $1"
+    exit 1
+}
+
+# Trap errors
+trap 'error_handler $LINENO' ERR
+
+# Check if script is run as root
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root" 
+    exit 1
+fi
+
+# Check if OS is CentOS
+if ! grep -q "CentOS" /etc/os-release; then
+    echo "This script is intended for CentOS only"
+    exit 1
+fi
+
+# Part 1: System Update, Docker Installation, and Containerd Installation
+sudo yum update -y
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/' /etc/fstab
+sudo yum install docker -y
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo chmod 666 /var/run/docker.sock
+sudo tee /etc/yum.repos.d/containerd.repo > /dev/null <<EOF
+[containerd]
+name=containerd
+baseurl=https://download.docker.com/linux/centos/7/\$basearch/stable
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/centos/gpg
+enabled=1
+EOF
+sudo yum install containerd.io -y
+sudo mkdir -p /etc/containerd
+sudo containerd config default > /etc/containerd/config.toml
+
+# Check if Docker and Containerd installation was successful
+if ! systemctl is-active --quiet docker || ! systemctl is-active --quiet containerd; then
+    echo "Error: Docker or Containerd installation failed."
+    exit 1
+fi
+
+# Enable and start containerd
+sudo systemctl enable --now containerd
+
+# Check if containerd is enabled and started successfully
+if ! systemctl is-active --quiet containerd; then
+    echo "Error: containerd enablement or start failed."
+    exit 1
+fi
+
+# Part 2: Install kubectl, kubeadm, and kubelet
+wget https://storage.googleapis.com/kubernetes-release/release/v1.28.8/bin/linux/amd64/kubectl
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+chmod +x kubectl
+mkdir -p ~/.local/bin
+mv ./kubectl ~/.local/bin/kubectl
+
+# Check if kubectl installation was successful
+if [ ! -x "/usr/local/bin/kubectl" ]; then
+    echo "Error: kubectl installation failed."
+    exit 1
+fi
+
+# Create install_kubadm_kublet.sh in the current directory
+tee ./install_kubadm_kublet.sh > /dev/null <<'EOF'
+#!/bin/bash
+
+# Install CNI plugins
+CNI_PLUGINS_VERSION="v1.3.0"
+ARCH="amd64"
+DEST="/opt/cni/bin"
+sudo mkdir -p "$DEST"
+curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-${ARCH}-${CNI_PLUGINS_VERSION}.tgz" | sudo tar -C "$DEST" -xz
+
+# Check if CNI plugins installation was successful
+if [ ! -x "${DEST}/portmap" ]; then
+    echo "Error: CNI plugins installation failed."
+    exit 1
+fi
+
+# Define the directory to download command files
+DOWNLOAD_DIR="/usr/local/bin"
+sudo mkdir -p "$DOWNLOAD_DIR"
+
+# Install crictl
+CRICTL_VERSION="v1.28.0"
+curl -L "https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-${ARCH}.tar.gz" | sudo tar -C "$DOWNLOAD_DIR" -xz
+
+# Check if crictl installation was successful
+if [ ! -x "${DOWNLOAD_DIR}/crictl" ]; then
+    echo "Error: crictl installation failed."
+    exit 1
+fi
+
+# Install kubeadm, kubelet, kubectl and add a kubelet systemd service
+KUBERNETES_VERSION="v1.28.8"
+cd "$DOWNLOAD_DIR" || exit
+sudo curl -L --remote-name-all "https://dl.k8s.io/release/${KUBERNETES_VERSION}/bin/linux/${ARCH}/{kubeadm,kubelet}"
+sudo chmod +x {kubeadm,kubelet}
+
+# Check if kubeadm and kubelet installation was successful
+if [ ! -x "${DOWNLOAD_DIR}/kubeadm" ] || [ ! -x "${DOWNLOAD_DIR}/kubelet" ]; then
+    echo "Error: kubeadm or kubelet installation failed."
+    exit 1
+fi
+
+RELEASE_VERSION="v0.16.2"
+curl -sSL "https://raw.githubusercontent.com/kubernetes/release/${RELEASE_VERSION}/cmd/krel/templates/latest/kubelet/kubelet.service" | sed "s:/usr/bin:${DOWNLOAD_DIR}:g" | sudo tee /etc/systemd/system/kubelet.service
+sudo mkdir -p /etc/systemd/system/kubelet.service.d
+curl -sSL "https://raw.githubusercontent.com/kubernetes/release/${RELEASE_VERSION}/cmd/krel/templates/latest/kubeadm/10-kubeadm.conf" | sed "s:/usr/bin:${DOWNLOAD_DIR}:g" | sudo tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+EOF
+
+# Make install_kubadm_kublet.sh executable
+chmod +x ./install_kubadm_kublet.sh
+
+# Execute install_kubadm_kublet.sh from the current directory
+./install_kubadm_kublet.sh
+
+# Check if kubeadm and kubelet installation was successful
+if ! which kubeadm || ! which kubelet; then
+    echo "Error: kubeadm or kubelet installation failed."
+    exit 1
+fi
+
+# Part 3: Enable and Start kubelet
+sudo systemctl enable --now kubelet
+
+# Check if kubelet is enabled and started successfully
+if ! systemctl is-active --quiet kubelet; then
+    echo "Error: kubelet enablement or start failed."
+    exit 1
+fi
+  
+# Verify firewall
+  
+sudo firewall-cmd --permanent --add-port=6443/tcp
+sudo firewall-cmd --permanent --add-port=10250/tcp
+sudo firewall-cmd --reload
+sudo yum install -y conntrack-tools
+
+# Verify installations
+kubectl version --client
+kubelet --version
+kubeadm version
+
+
