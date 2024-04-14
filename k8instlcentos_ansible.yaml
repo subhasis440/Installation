@@ -1,0 +1,115 @@
+---
+- name: Install Kubernetes Node
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update system and disable swap
+      shell: |
+        sudo yum update -y
+        sudo swapoff -a
+        sudo sed -i '/ swap / s/^\(.*\)$/#\1/' /etc/fstab
+      ignore_errors: yes
+
+    - name: Install Docker
+      yum:
+        name: docker
+        state: present
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Set Docker permissions
+      file:
+        path: /var/run/docker.sock
+        mode: '0666'
+
+    - name: Add containerd repository
+      copy:
+        content: |
+          [containerd]
+          name=containerd
+          baseurl=https://download.docker.com/linux/centos/7/$basearch/stable
+          gpgcheck=1
+          gpgkey=https://download.docker.com/linux/centos/gpg
+          enabled=1
+        dest: /etc/yum.repos.d/containerd.repo
+
+    - name: Install containerd
+      yum:
+        name: containerd.io
+        state: present
+
+    - name: Configure containerd
+      copy:
+        src: /etc/containerd/config.toml
+        dest: /etc/containerd/config.toml
+
+    - name: Enable and start containerd
+      systemd:
+        name: containerd
+        enabled: yes
+        state: started
+
+    - name: Install kubectl
+      shell: |
+        wget https://storage.googleapis.com/kubernetes-release/release/v1.28.8/bin/linux/amd64/kubectl
+        chmod +x kubectl
+        mv kubectl /usr/local/bin/
+
+    - name: Install CNI plugins
+      shell: |
+        CNI_PLUGINS_VERSION="v1.3.0"
+        ARCH="amd64"
+        DEST="/opt/cni/bin"
+        mkdir -p "$DEST"
+        curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-${ARCH}-${CNI_PLUGINS_VERSION}.tgz" | tar -C "$DEST" -xz
+
+    - name: Install crictl
+      shell: |
+        CRICTL_VERSION="v1.28.0"
+        ARCH="amd64"
+        DOWNLOAD_DIR="/usr/local/bin"
+        mkdir -p "$DOWNLOAD_DIR"
+        curl -L "https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-${ARCH}.tar.gz" | tar -C "$DOWNLOAD_DIR" -xz
+
+    - name: Install kubeadm and kubelet
+      shell: |
+        KUBERNETES_VERSION="v1.28.8"
+        cd "$DOWNLOAD_DIR"
+        curl -L --remote-name-all "https://dl.k8s.io/release/${KUBERNETES_VERSION}/bin/linux/${ARCH}/{kubeadm,kubelet}"
+        chmod +x {kubeadm,kubelet}
+
+    - name: Create kubelet service file
+      shell: |
+        RELEASE_VERSION="v0.16.2"
+        curl -sSL "https://raw.githubusercontent.com/kubernetes/release/${RELEASE_VERSION}/cmd/krel/templates/latest/kubelet/kubelet.service" | sed "s:/usr/bin:${DOWNLOAD_DIR}:g" | tee /etc/systemd/system/kubelet.service
+
+    - name: Create kubelet configuration
+      shell: |
+        curl -sSL "https://raw.githubusercontent.com/kubernetes/release/${RELEASE_VERSION}/cmd/krel/templates/latest/kubeadm/10-kubeadm.conf" | sed "s:/usr/bin:${DOWNLOAD_DIR}:g" | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+    - name: Enable and start kubelet
+      systemd:
+        name: kubelet
+        enabled: yes
+        state: started
+
+    - name: Add firewall rules
+      shell: |
+        sudo firewall-cmd --permanent --add-port=6443/tcp
+        sudo firewall-cmd --permanent --add-port=10250/tcp
+        sudo firewall-cmd --reload
+
+    - name: Install conntrack-tools
+      yum:
+        name: conntrack-tools
+        state: present
+
+    - name: Verify installations
+      shell: |
+        kubectl version --client
+        kubelet --version
+        kubeadm version
