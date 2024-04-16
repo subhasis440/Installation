@@ -7,7 +7,6 @@ sudo sed -i '/ swap / s/^\(.*\)$/#\1/' /etc/fstab
 sudo yum install docker -y
 sudo systemctl enable docker
 sudo systemctl start docker
-sudo systemctl status docker
 sudo chmod 666 /var/run/docker.sock
 sudo tee /etc/yum.repos.d/containerd.repo > /dev/null <<EOF
 [containerd]
@@ -22,7 +21,6 @@ sudo mkdir -p /etc/containerd
 sudo containerd config default > /etc/containerd/config.toml
 sudo systemctl enable containerd
 sudo systemctl start containerd
-sudo systemctl status containerd
 
 # Part 2: Install kubectl, kubeadm, and kubelet
 wget https://storage.googleapis.com/kubernetes-release/release/v1.28.8/bin/linux/amd64/kubectl
