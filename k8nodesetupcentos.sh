@@ -76,6 +76,7 @@ sudo firewall-cmd --permanent --add-port=6443/tcp
 sudo firewall-cmd --permanent --add-port=10250/tcp
 sudo firewall-cmd --reload
 sudo yum install -y conntrack-tools
+rm -rf install_kubadm_kublet.sh
 
 # Verify installations
 kubectl version --client
