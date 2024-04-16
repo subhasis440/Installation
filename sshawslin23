@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Generate SSH key pair without a passphrase
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+
+# Copy the public key content to the authorized_keys file on the server
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+
+# Restart SSH service
+sudo systemctl restart sshd
+
+# Edit sshd_config
+sudo nano /etc/ssh/sshd_config
+
+# Update sshd_config with desired settings
+sudo sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Restart SSH service
+sudo systemctl restart sshd
+
+echo "Setup complete."
