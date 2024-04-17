@@ -12,3 +12,4 @@ sudo ufw allow 30000:32767/tcp  # Custom TCP (Port range 30000 - 32767)
 sudo ufw allow 9100/tcp
 sudo ufw allow 8080/tcp
 sudo ufw allow 8081/tcp
+sudo ufw allow 1000:2000/tcp
