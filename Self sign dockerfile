@@ -1,0 +1,38 @@
+openssl req -x509 -nodes -newkey rsa:2048 -keyout jenkins.key -out jenkins.crt -days 365
+
+
+# Use the official Jenkins image from Docker Hub
+FROM jenkins/jenkins:latest
+
+# Install necessary tools
+USER root
+RUN apt-get update && \
+    apt-get install -y openssl
+
+# Copy SSL certificate and key to the container
+COPY jenkins.key /var/jenkins_ssl/jenkins.key
+COPY jenkins.crt /var/jenkins_ssl/jenkins.crt
+
+# Generate keystore
+RUN openssl pkcs12 -export -out /var/jenkins_ssl/jenkins.keystore -in /var/jenkins_ssl/jenkins.crt -inkey /var/jenkins_ssl/jenkins.key -name jenkins -passout pass:changeit
+
+# Set permissions
+RUN chown jenkins:jenkins /var/jenkins_ssl/jenkins.key && \
+    chown jenkins:jenkins /var/jenkins_ssl/jenkins.crt && \
+    chmod 600 /var/jenkins_ssl/jenkins.key && \
+    chmod 600 /var/jenkins_ssl/jenkins.crt && \
+    chown jenkins:jenkins /var/jenkins_ssl/jenkins.keystore && \
+    chmod 600 /var/jenkins_ssl/jenkins.keystore
+
+# Switch back to the Jenkins user
+USER jenkins
+
+# Expose HTTPS port
+EXPOSE 8443  
+
+# Start Jenkins with HTTPS
+CMD ["java", "-Djava.awt.headless=true", "-jar", "/usr/share/jenkins/jenkins.war", "--httpPort=-1", "--httpsPort=8443", "--httpsKeyStore=/var/jenkins_ssl/jenkins.keystore", "--httpsKeyStorePassword=changeit"]
+
+
+docker build -t jenkins .
+docker run -d -p 8443:8443 jenkins --name jenkins
