@@ -20,3 +20,15 @@ sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh
 sudo systemctl restart sshd
 
 echo "Setup complete."
+
+Added below user
+
+sudo su
+sudo adduser subh
+sudo passwd subh [password will be : target]
+sudo usermod -aG sudo subh
+sudo su
+visudo
+Add the following line to grant sudo privileges to your user (subh):
+
+subh    ALL=(ALL) ALL
