@@ -8,6 +8,7 @@ sudo yum install docker -y
 sudo systemctl enable docker
 sudo systemctl start docker
 sudo chmod 666 /var/run/docker.sock
+
 sudo tee /etc/yum.repos.d/containerd.repo > /dev/null <<EOF
 [containerd]
 name=containerd
@@ -23,62 +24,43 @@ sudo systemctl enable containerd
 sudo systemctl start containerd
 
 # Part 2: Install kubectl, kubeadm, and kubelet
-wget https://storage.googleapis.com/kubernetes-release/release/v1.28.8/bin/linux/amd64/kubectl
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-chmod +x kubectl
-mkdir -p ~/.local/bin
-mv ./kubectl ~/.local/bin/kubectl
-
-# Create install_kubadm_kublet.sh in the current directory
-tee ./install_kubadm_kublet.sh > /dev/null <<'EOF'
-#!/bin/bash
-
-# Install CNI plugins
-CNI_PLUGINS_VERSION="v1.3.0"
-ARCH="amd64"
-DEST="/opt/cni/bin"
-sudo mkdir -p "$DEST"
-curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-${ARCH}-${CNI_PLUGINS_VERSION}.tgz" | sudo tar -C "$DEST" -xz
-
-# Define the directory to download command files
-DOWNLOAD_DIR="/usr/local/bin"
-sudo mkdir -p "$DOWNLOAD_DIR"
-
-# Install crictl
-CRICTL_VERSION="v1.28.0"
-curl -L "https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-${ARCH}.tar.gz" | sudo tar -C "$DOWNLOAD_DIR" -xz
-
-# Install kubeadm, kubelet, kubectl and add a kubelet systemd service
-KUBERNETES_VERSION="v1.28.8"
-ARCH="amd64"
-cd "$DOWNLOAD_DIR" || exit
-sudo curl -L --remote-name-all "https://dl.k8s.io/release/${KUBERNETES_VERSION}/bin/linux/${ARCH}/{kubeadm,kubelet}"
-sudo chmod +x {kubeadm,kubelet}
-
-RELEASE_VERSION="v0.16.2"
-curl -sSL "https://raw.githubusercontent.com/kubernetes/release/${RELEASE_VERSION}/cmd/krel/templates/latest/kubelet/kubelet.service" | sed "s:/usr/bin:${DOWNLOAD_DIR}:g" | sudo tee /etc/systemd/system/kubelet.service
-sudo mkdir -p /etc/systemd/system/kubelet.service.d
-curl -sSL "https://raw.githubusercontent.com/kubernetes/release/${RELEASE_VERSION}/cmd/krel/templates/latest/kubeadm/10-kubeadm.conf" | sed "s:/usr/bin:${DOWNLOAD_DIR}:g" | sudo tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+sudo setenforce 0
+sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni
 EOF
-
-# Make install_kubadm_kublet.sh executable
-chmod +x ./install_kubadm_kublet.sh
-
-# Execute install_kubadm_kublet.sh from the current directory
-./install_kubadm_kublet.sh
-
-# Part 3: Enable and Start kubelet
+sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 sudo systemctl enable --now kubelet
-sudo systemctl start kubelet
+
 
 # add firewall
-sudo firewall-cmd --permanent --add-port=6443/tcp
-sudo firewall-cmd --permanent --add-port=10250/tcp
+
+sudo yum install firewalld
+sudo systemctl start firewalld
+sudo systemctl enable firewalld
+sudo firewall-cmd --permanent --add-port=25/tcp       # SMTP (Port 25)
+sudo firewall-cmd --permanent --add-port=3000-10000/tcp  # Custom TCP (Port range 3000 - 10000)
+sudo firewall-cmd --permanent --add-port=80/tcp       # HTTP (Port 80)
+sudo firewall-cmd --permanent --add-port=443/tcp      # HTTPS (Port 443)
+sudo firewall-cmd --permanent --add-port=22/tcp       # SSH (Port 22)
+sudo firewall-cmd --permanent --add-port=6443/tcp     # Custom TCP (Port 6443)
+sudo firewall-cmd --permanent --add-port=465/tcp      # SMTPS (Port 465)
+sudo firewall-cmd --permanent --add-port=30000-32767/tcp  # Custom TCP (Port range 30000 - 32767)
+sudo firewall-cmd --permanent --add-port=9100/tcp     # Custom TCP (Port 9100)
+sudo firewall-cmd --permanent --add-port=8080/tcp     # Custom TCP (Port 8080)
+sudo firewall-cmd --permanent --add-port=8081/tcp     # Custom TCP (Port 8081)
+sudo firewall-cmd --permanent --add-port=1000-2000/tcp   # Custom TCP (Port range 1000 - 2000)
 sudo firewall-cmd --reload
-sudo yum install -y conntrack-tools
-rm -rf install_kubadm_kublet.sh
+
 
 # Verify installations
+sudo firewall-cmd --state
 kubectl version --client
 kubelet --version
 kubeadm version
