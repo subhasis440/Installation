@@ -64,9 +64,6 @@ gpgkey=https://download.docker.com/linux/centos/gpg
 EOF
 sudo dnf update -y
 
-# Remove exclude rules for Kubernetes packages
-sudo sed -i '/exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni/d' /etc/yum.repos.d/kubernetes.repo
-
 # Install Kubernetes components
 sudo setenforce 0
 sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
@@ -78,6 +75,8 @@ enabled=1
 gpgcheck=1
 gpgkey=https://pkgs.k8s.io/core:/stable:/v1.28/rpm/repodata/repomd.xml.key
 EOF
+# Remove exclude rules for Kubernetes packages
+sudo sed -i '/exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni/d' /etc/yum.repos.d/kubernetes.repo
 sudo yum install -y kubelet kubeadm kubectl
 sudo systemctl restart containerd
 sudo systemctl enable kubelet
