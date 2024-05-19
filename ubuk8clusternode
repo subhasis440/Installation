@@ -6,7 +6,7 @@ sudo apt-get update
 # Disable swap
 sudo swapoff -a
 sudo sed -i '/ swap / s/^\(.*\)$/#\1/' /etc/fstab
-
+sudo mkdir -m 755 /etc/apt/keyrings
 # Install Docker
 sudo apt-get install -y docker.io
 sudo chmod 666 /var/run/docker.sock
