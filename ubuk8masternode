@@ -87,3 +87,4 @@ kubectl apply -f calico.yaml
 kubectl get po -A
 kubectl get no -A
 kubectl cluster-info
+kubectl label node node1 node-role.kubernetes.io/worker=worker
