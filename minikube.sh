@@ -1,5 +1,5 @@
 sudo apt-get update
-
+sudo apt-get install -y vim git wget nano htop fish git tree
 sudo swapoff -a
 sudo sed -i '/ swap / s/^\(.*\)$/#\1/' /etc/fstab
 sudo mkdir -m 755 /etc/apt/keyrings
@@ -11,7 +11,7 @@ sudo systemctl start docker
 sudo usermod -aG docker root
 sudo usermod -aG docker subh
 
-sudo apt-get install -y vim git curl wget apt-transport-https ca-certificates curl gnupg conntrack
+sudo apt-get install -y curl apt-transport-https ca-certificates gnupg conntrack
 
 sudo apt-get update
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
@@ -54,6 +54,7 @@ cri-dockerd --version
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
 sudo dpkg -i minikube_latest_amd64.deb
 
+sudo sysctl fs.protected_regular=0
 
 minikube start --driver=none
 
