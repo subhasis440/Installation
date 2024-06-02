@@ -54,3 +54,10 @@ sudo dpkg -i minikube_latest_amd64.deb
 
 
 minikube start --driver=none
+
+
+K9s
+
+https://github.com/derailed/k9s/releases/download/v0.32.4/k9s_Linux_amd64.tar.gz
+tar -xvf k9s_Linux_amd64.tar.gz
+rm k9s_Linux_amd64.tar.gz
