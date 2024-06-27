@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-SONARQUBE_VERSION="10.5.1.90531" # Update with the latest stable version
+SONARQUBE_VERSION="10.6.0.92116" # Update with the latest stable version
 SONARQUBE_ZIP_URL="https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip"
 
 # Update and install necessary packages
