@@ -39,7 +39,7 @@ sudo sysctl --system
 sudo apt update -y
 sudo apt-get -y install containerd
 
-mkdir -p /etc/containerd
+sudo mkdir -p /etc/containerd
 containerd config default > /etc/containerd/config.toml
 sudo systemctl restart containerd
 sudo systemctl enable containerd
