@@ -8,8 +8,7 @@ sudo apt-get install -y docker.io
 sudo chmod 666 /var/run/docker.sock
 sudo systemctl enable docker
 sudo systemctl start docker
-sudo usermod -aG docker root
-sudo usermod -aG docker subh
+sudo usermod -aG docker $USER
 
 sudo apt-get install -y curl apt-transport-https ca-certificates gnupg conntrack
 
