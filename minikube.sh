@@ -58,7 +58,8 @@ curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest
 sudo dpkg -i minikube_latest_amd64.deb
 
 sudo sysctl fs.protected_regular=0
-
+rm minikube*
+rm cri-dockerd*
 minikube start --driver=none
 
 
