@@ -65,7 +65,7 @@ minikube start --driver=none
 
 K9s
 
-wget https://github.com/derailed/k9s/releases/download/v0.32.4/k9s_Linux_amd64.tar.gz
+wget https://github.com/derailed/k9s/releases/download/v0.32.6/k9s_Linux_amd64.tar.gz
 tar -xvf k9s_Linux_amd64.tar.gz
 rm k9s_Linux_amd64.tar.gz LICENSE README.md
 
