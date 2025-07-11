@@ -51,7 +51,7 @@ sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/c
 sudo systemctl restart containerd
 
 wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.18/cri-dockerd_0.3.18.3-0.ubuntu-jammy_amd64.deb
-sudo dpkg -i cri-dockerd_0.3.14.3-0.ubuntu-jammy_amd64.deb
+sudo dpkg -i cri-dockerd_0.3.18.3-0.ubuntu-jammy_amd64.deb
 cri-dockerd --version
 
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
