@@ -16,14 +16,16 @@ sudo nano /etc/netplan/00-installer-config.yaml
 cat <<EOF | sudo tee /etc/netplan/00-installer-config.yaml > /dev/null
 # This is the network config written by 'subiquity'
 network:
-  ethernets:
-    enp0s3:
-      dhcp4: false
-      addresses: [192.168.55.10/24]
-      gateway4: 192.168.55.1
-      nameservers:
-        addresses: [8.8.8.8, 4.2.2.2]
-  version: 2
+  version: 2
+  ethernets:
+    enp0s3:
+      dhcp4: false
+      addresses: [10.0.5.10/24]
+      routes:
+        - to: 0.0.0.0/0
+          via: 10.0.5.1
+      nameservers:
+        addresses: [8.8.8.8, 4.2.2.2]
 EOF
 
 # Apply the new network configuration
